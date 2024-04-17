@@ -14,9 +14,9 @@ venv*/
 !requirements.txt
 *.log
 
-## Ignore all migration files, then re-include __init__.py
-#**/migrations/*
-#!**/migrations/__init__.py
+# Ignore all migration files, then re-include __init__.py
+**/migrations/*
+!**/migrations/__init__.py
 
 # Image files - Ignore all, except in the 'static' folder
 *.jpg
@@ -27,6 +27,4 @@ venv*/
 *.webp
 *.bmp
 !static/**/*.*
-
-
 

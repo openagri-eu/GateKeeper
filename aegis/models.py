@@ -10,6 +10,8 @@ from simple_history.models import HistoricalRecords
 class DefaultAuthUserExtend(AbstractUser):
     class Meta:
         db_table = 'auth_user_extend'
+        verbose_name = 'User Master'
+        verbose_name_plural = 'User Masters'
 
     uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
