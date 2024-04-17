@@ -23,15 +23,20 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
-
-INSTALLED_APPS = [
+DEFAULT_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+]
 
+LOCAL_APPS = [
+    "aegis.apps.AegisConfig",       # The app that contains auth logic, configured using the app's AppConfig.
+]
+
+THIRD_PARTY_APPS = [
     # allauth apps
     'django.contrib.sites',
     'allauth',
@@ -39,12 +44,17 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
 ]
 
+INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS + THIRD_PARTY_APPS
+
+
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 )
 
+
 SITE_ID = 1
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -139,3 +149,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom user model replacing the default Django user model.
+AUTH_USER_MODEL = 'aegis.DefaultAuthUserExtend'
