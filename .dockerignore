@@ -1,0 +1,9 @@
+**/venv/
+.git
+.idea
+**/__pycache__/
+**/assets/
+**/staticfiles/
+
+.yarnrc.yml
+README.md

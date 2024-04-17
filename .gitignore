@@ -4,6 +4,7 @@
 venv*/
 .idea/
 **/staticfiles/
+**/assets/
 
 # Files
 .env
