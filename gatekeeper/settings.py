@@ -27,7 +27,12 @@ JWT_ALG = os.environ.get('JWT_ALG')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]']
+
+EXTRA_ALLOWED_HOSTS = os.environ.get('EXTRA_ALLOWED_HOSTS', None)
+if EXTRA_ALLOWED_HOSTS is not None:
+    EXTRA_ALLOWED_HOSTS = EXTRA_ALLOWED_HOSTS.split(',')
+    ALLOWED_HOSTS.extend(EXTRA_ALLOWED_HOSTS)
 
 APPEND_SLASH = True
 
@@ -199,6 +204,7 @@ AVAILABLE_SERVICES = {
 # same with this data, also cames in the service announcement
 # in the service registration endpoint
 REVERSE_PROXY_MAPPING = {
+    'Farm': 'FarmCalendar',
     'FarmActivities': 'FarmCalendar',
     'FarmActivityTypes': 'FarmCalendar',
     'FarmAssets': 'FarmCalendar',
