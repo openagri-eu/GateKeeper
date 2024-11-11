@@ -3,6 +3,9 @@ from io import StringIO
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
+from django.db import connections
+from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations.recorder import MigrationRecorder
 from django.contrib.auth import get_user_model
 
 
@@ -12,19 +15,24 @@ from django.contrib.auth import get_user_model
 class Command(BaseCommand):
     help = "Initial setup command"
 
+    def check_pending_migrations(self):
+        for connection in connections.all():
+            executor = MigrationExecutor(connection)
+            targets = executor.loader.graph.leaf_nodes()
+            recorder = MigrationRecorder(connection)
+            applied = recorder.applied_migrations()
+
+            unapplied = [migration for migration in targets if migration not in applied]
+
+            return len(unapplied) > 0
+
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('Checking for migration changes...'))
 
-        # Capture output of makemigrations to determine if changes were made
-        out = StringIO()
-        call_command('makemigrations', stdout=out)
-        output = out.getvalue()
-
-        if 'No changes detected' not in output:
-            self.stdout.write(self.style.SUCCESS('Changes detected, running migrations...'))
+        if self.check_pending_migrations():
+            self.stdout.write(self.style.SUCCESS('Pending migrations detected, running migrations...'))
             call_command('migrate')
-        else:
-            self.stdout.write(self.style.SUCCESS('No changes detected.'))
+
 
         self.stdout.write(self.style.SUCCESS('Collecting static files...'))
         call_command('collectstatic', '--noinput')
