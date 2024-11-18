@@ -52,13 +52,13 @@ urlpatterns = [
     path('api/service_directory/', ServiceDirectoryAPIView.as_view(), name='service_directory'),
     path('api/delete_service/', DeleteServiceAPIView.as_view(), name='delete_service'),
 
-    re_path(r'^api/resources/(?P<path>.*)$', ReverseProxyAPIView.as_view(), name='reverse_proxy'),
+    # re_path(r'^api/resources/(?P<path>.*)$', ReverseProxyAPIView.as_view(), name='reverse_proxy'),
     path('aegis/', include('aegis.urls', namespace='aegis')),
 
     path('api/test_gateway/', GatewayAPIView.as_view(), name='test_gateway'),
 
     # Catch-all route for GatewayAPIView
-    re_path(r"^api/(?P<path>.*)$", GatewayAPIView.as_view(), name="gateway")
+    re_path(r"^api/proxy/(?P<service_name>[^/]+)/(?P<path>.*)$", GatewayAPIView.as_view(), name="reverse_proxy")
 ]
 
 if settings.DEBUG:

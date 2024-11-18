@@ -85,13 +85,15 @@ class DefaultAuthUserExtend(AbstractUser, BaseModel):
 class RegisteredService(BaseModel):
     id = models.AutoField(primary_key=True, db_column='id', db_index=True, editable=False, unique=True,
                           blank=False, null=False, verbose_name='ID')
-    base_url = models.CharField(max_length=255, default="http://127.0.0.1:8001", blank=False, null=False)
-    service_name = models.CharField(max_length=100)
-    endpoint = models.CharField(max_length=255)
-    methods = models.JSONField()
-    version = models.CharField(max_length=10, default="v1")
-    params = models.JSONField()
+    base_url = models.CharField(max_length=255, default="http://127.0.0.1:8001", blank=True, null=True)
+    endpoint = models.CharField(max_length=255, blank=True, null=True)
+    methods = models.JSONField(blank=True, null=True)
+    version = models.CharField(max_length=10, default="v1", blank=True, null=True)
+    params = models.JSONField(blank=True, null=True)
     service_url = models.CharField(max_length=500, blank=True, null=True)
+
+    service_name = models.CharField(max_length=100, unique=True)
+    api_root_url = models.CharField(max_length=255, blank=False, null=False)
 
     history = HistoricalRecords(table_name="registered_services_history")
 

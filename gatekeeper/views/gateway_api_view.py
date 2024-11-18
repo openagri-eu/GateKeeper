@@ -17,80 +17,70 @@ logger = logging.getLogger(__name__)
 class GatewayAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, path=None, *args, **kwargs):
-        return self.handle_request(request, path, "GET")
-
-    def post(self, request, path=None, *args, **kwargs):
-        return self.handle_request(request, path, "POST")
-
-    def handle_request(self, request, path, method):
-        logger.info(f"Handling {method} request for path: {path}")
+    def reverse_proxy_handler(self, request, *args, **kwargs):
+        import ipdb; ipdb.set_trace()
+        # Access the URL argument
+        service_name = kwargs.get('service_name', None)
+        path = kwargs.get('path', None)
 
         # Step 1: Match registered service
-        for service in RegisteredService.objects.filter(status=1):  # Only check active services
-            if match_endpoint(path, f"{service.service_name}/{service.version}/{service.endpoint}"):
-                registered_service = service
-                break
-        else:
-            return JsonResponse({"error": "Service not available or endpoint not registered."}, status=404)
-
-        # Step 2: Validate service health
-        base_url = registered_service.base_url.rstrip("/")
-        logger.info(f"Base URL: {base_url}")
-
-        if not check_service_health(base_url):
-            logger.warning(f"Service health check failed for {base_url}")
-            return JsonResponse(
-                {"error": f"Service {registered_service.service_name} is temporarily unavailable."},
-                status=503
-            )
-
-        # Step 3: Construct backend URL
-        backend_url = registered_service.service_url
-        backend_url = self.construct_backend_url(
-            registered_service.endpoint, path, base_url, registered_service.service_name, registered_service.version
-        )
-        logger.info(f"Constructed backend URL: {backend_url}")
-        headers = {"Authorization": request.headers.get("Authorization")}
-        print("backend_url: ", backend_url)
-
         try:
-            if method == "GET":
-                response = requests.get(backend_url, headers=headers, params=request.GET, timeout=10)
-            elif method == "POST":
-                response = requests.post(backend_url, headers=headers, json=request.data, timeout=10)
-            else:
-                return JsonResponse({"error": f"Method {method} not supported."}, status=405)
+            registered_service = RegisteredService.objects.get(status=1, service_name=service_name)  # Only check active services
+        except RegisteredService.DoesNotExist:
+            return JsonResponse({"error": "Service not registered or active."}, status=404)
 
+        provider_api = registered_service.api_root_url
+
+        url = f"{provider_api}{path}"
+        method = request.method
+        # Forward all the request headers and body
+        headers = {key: value for key, value in request.headers.items() if key != 'Host'}
+        params = request.GET.dict()
+        data = request.POST.dict()
+        json_data = None
+        if request.content_type == "application/json" or "application/ld+json":
+            try:
+                json_data = request.body.decode('utf-8')  # Raw JSON body
+            except Exception:
+                json_data = None
+
+        # Make the generic request to the target URL
+        try:
+            response = requests.request(
+                method=method,                # HTTP method
+                url=url,
+                params=params,                # Query parameters
+                data=data,                    # Form data
+                json=json_data,               # JSON data
+                headers=headers,       # Forward headers
+                timeout=10                      # probably shoudl set this as an env var
+            )
             return HttpResponse(
                 response.content,
                 status=response.status_code,
-                content_type=response.headers.get("Content-Type", "application/json")
+                content_type=response.headers.get('Content-Type', 'application/ld+json')
             )
-        except requests.RequestException as e:
-            return JsonResponse({"error": f"Failed to connect to the backend service: {str(e)}"}, status=502)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
 
-    def construct_backend_url(self, endpoint_template, path, base_url, service_name, version):
+    def dispatch(self, request, *args, **kwargs):
         """
-        Construct the backend URL by replacing placeholders in the registered endpoint
-        with actual values from the incoming request path.
+        override django dispatch to always call the same reverse proxy handler,
+        independent on the request method
         """
-        # Split both the incoming path and registered endpoint into segments
-        incoming_segments = path.strip("/").split("/")
-        registered_segments = f"{service_name}/{version}/{endpoint_template}".strip("/").split("/")
+        self.args = args
+        self.kwargs = kwargs
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.headers = self.default_response_headers  # deprecate?
 
-        # Map placeholders to actual values
-        replacement_map = {}
-        for reg_seg, inc_seg in zip(registered_segments, incoming_segments):
-            if reg_seg.startswith("{") and reg_seg.endswith("}"):
-                key = reg_seg.strip("{}")
-                replacement_map[key] = inc_seg
+        try:
+            self.initial(request, *args, **kwargs)
+            handler = self.reverse_proxy_handler
+            response = handler(request, *args, **kwargs)
 
-        # Replace placeholders in the endpoint with actual values
-        for placeholder, value in replacement_map.items():
-            endpoint_template = endpoint_template.replace(f"{{{placeholder}}}", value)
+        except Exception as exc:
+            response = self.handle_exception(exc)
 
-        # Construct the full URL including service name and version
-        final_endpoint = f"{service_name}/{version}/{endpoint_template.lstrip('/')}"
-        return f"{base_url.rstrip('/')}/{final_endpoint.lstrip('/')}"
-
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+        return self.response
