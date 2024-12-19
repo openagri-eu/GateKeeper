@@ -1,5 +1,6 @@
 # aegis/views/api/service_registry_views.py
 
+import json
 import re
 import requests
 
@@ -327,7 +328,15 @@ class NewReverseProxyAPIView(APIView):
             print(f"Forwarding request to: {url}")
 
             headers = {key: value for key, value in request.headers.items() if key.lower() != 'host'}
-            data = request.body
+
+            # The following solution assumes that for request the have a JSON body
+            # the header 'Content-Type: application/json' is set in the original request
+            try:
+                data = json.loads(request.body)
+            except:
+                print("Cannot parse JSON body")
+            else:
+                data = request.body
 
             # Forward the request based on the HTTP method
             if request.method == 'GET':
