@@ -53,7 +53,11 @@ class Command(BaseCommand):
         # Check if migrations are already applied
         if not self.check_migration_applied():
             self.stdout.write(self.style.WARNING('No migrations found. Running migrations...'))
+            # Generate migrations for all apps
             call_command('makemigrations')
+            # Ensure 'aegis' app has its migrations explicitly created
+            # call_command('makemigrations', 'aegis')
+            # Apply all migrations
             call_command('migrate')
         else:
             self.stdout.write(self.style.SUCCESS('Migrations already applied. Skipping migration step.'))
