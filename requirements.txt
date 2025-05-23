@@ -16,3 +16,4 @@ requests==2.32.3
 drf-yasg==1.21.8
 setuptools==75.8.0
 whitenoise==6.8.2
+django-cors-headers

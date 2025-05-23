@@ -1,3 +1,4 @@
+import re
 import dj_database_url
 import os
 
@@ -78,11 +79,31 @@ def generate_csrf_trusted_origins(base_domains):
     return origins
 
 # Base domains and IPs you want to trust
-BASE_DOMAINS = [
-    'horizon-openagri.eu'
-]
+BASE_DOMAINS = os.environ.get('BASE_DOMAINS', 'localhost').split(',')
 
 CSRF_TRUSTED_ORIGINS = generate_csrf_trusted_origins(BASE_DOMAINS)
+
+cors_origin_regex_env = os.environ.get('CORS_ALLOWED_ORIGIN_REGEXES')
+
+if cors_origin_regex_env:
+    CORS_ALLOWED_ORIGIN_REGEXES = cors_origin_regex_env.split(',')
+else:
+    CORS_ALLOWED_ORIGIN_REGEXES = []
+
+    for domain in BASE_DOMAINS:
+        escaped_domain = re.escape(domain.strip())
+        CORS_ALLOWED_ORIGIN_REGEXES.append(rf"^http://{escaped_domain}(:\d+)?$")
+        CORS_ALLOWED_ORIGIN_REGEXES.append(rf"^https://{escaped_domain}(:\d+)?$")
+
+CORS_URLS_REGEX = r"^/api/proxy/.*$"
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
 
 # CSRF_TRUSTED_ORIGINS = [
 #     'https://gk.sip1.193.22.146.204.nip.io',
@@ -119,6 +140,7 @@ THIRD_PARTY_APPS = [
     'drf_yasg',
     'oauth2_provider',
     'rest_framework_simplejwt.token_blacklist',
+    "corsheaders",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS + THIRD_PARTY_APPS
@@ -139,6 +161,7 @@ LOGOUT_REDIRECT_URL = 'login'  # Redirect to the login page after logging out
 
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
